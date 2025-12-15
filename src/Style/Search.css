@@ -1,0 +1,228 @@
+/* === PAGE WRAPPER === */
+.search-page {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  padding: 4rem 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+
+  /* Center the entire page content */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+/* === MAIN CONTAINER === */
+.search-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 3rem 5vw; /* relative padding for responsiveness */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+
+  /* Center content properly */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* === TITLE === */
+.page-title {
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #0046ad;
+  margin-bottom: 2.5rem;
+  width: 100%;
+}
+
+/* === SEARCH BAR === */
+.search-bar {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.search-bar input {
+  flex: 1;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  border: 2px solid #cfe0ff;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  outline: none;
+  transition: 0.2s ease;
+  box-sizing: border-box;
+}
+
+.search-bar input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.search-btn {
+  background: #007bff;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  border-radius: 0.75rem;
+  padding: 0 1.5rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.search-btn:hover {
+  background: #005dc1;
+}
+
+/* === ALL SERVICES BUTTON === */
+.all-services-btn {
+  display: block;
+  width: 100%;
+  max-width: 1200px;
+  text-align: center;
+  background: linear-gradient(90deg, #007bff, #0056d2);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 1.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0 auto 2.5rem;
+  transition: all 0.3s ease;
+}
+
+.all-services-btn:hover {
+  background: linear-gradient(90deg, #005dc1, #003d99);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 91, 255, 0.3);
+}
+
+/* === FILTER SECTION === */
+.filter-toggle {
+  background: #005dc1;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.filter-toggle:hover {
+  background: #0046ad;
+}
+
+.filters {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+  justify-content: center;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.filters select {
+  flex: 1;
+  min-width: 250px;
+  padding: 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cfd8e3;
+  background: #f8f9fa;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+/* === TABLE === */
+.table-container {
+  width: 100%;
+  max-width: 1200px;
+  max-height: 500px;
+  overflow-y: auto;
+  border-radius: 0.75rem;
+  border: 1px solid #e0e0e0;
+  margin: 0 auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background-color: #007bff;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 1rem;
+}
+
+tbody tr:hover {
+  background-color: #f5f8ff;
+}
+
+.no-results {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+  background: #f8f9fa;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1200px) {
+  .search-container {
+    padding: 2rem 3rem;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+  }
+
+  .search-bar input {
+    width: 100%;
+  }
+
+  .all-services-btn {
+    font-size: 1.15rem;
+    padding: 1rem 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-container {
+    padding: 1.5rem 2rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .search-bar {
+    flex-direction: column;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+}

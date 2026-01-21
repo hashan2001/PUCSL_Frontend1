@@ -16,69 +16,69 @@ import "../../style/ProviderDashboard.css";
 
 export const ProviderDashboard = () => {
   const navigate = useNavigate();
-
-  // 🔹 Mock provider data
   const [provider, setProvider] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProviderData = () => {
+    const fetchProviderData = async () => {
       try {
-        // Dummy provider data for demonstration
-        const dummyProvider = {
-          id: 1,
-          full_name: 'Rajesh Kumar',
-          service_type: 'AC',
-          district: 'Colombo',
-          address: '123 Main Street, Colombo 01',
-          contact_number: '+94 77 123 4567',
-          pucsl_badge_number: 'PUCSL-AC-2024-001',
-          bio: 'Experienced AC technician with 8+ years in installation and repair. Certified by PUCSL with advanced training in modern cooling systems.',
-          status: 'verified',
-          email: 'rajesh@example.com'
-        };
+        // 1️⃣ GET LOGGED-IN PROVIDER'S ID FROM LOCALSTORAGE
+        const userId = localStorage.getItem('userId');
+        const token = localStorage.getItem('token');
 
-        setProvider(dummyProvider);
+        console.log('🔍 FETCHING PROVIDER DATA FOR USER ID:', userId);
 
-        // Dummy reviews data
-        setReviews([
-          {
-            id: 1,
-            customer_name: "John Doe",
-            rating: 5,
-            feedback: "Excellent service! Rajesh was professional, punctual, and fixed my AC in no time. Highly recommended.",
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 2,
-            customer_name: "Jane Smith",
-            rating: 4,
-            feedback: "Good work on my refrigerator repair. Took a bit longer than expected but the quality was good.",
-            created_at: new Date(Date.now() - 86400000).toISOString()
-          },
-          {
-            id: 3,
-            customer_name: "Michael Chen",
-            rating: 5,
-            feedback: "Very satisfied with the electrical installation. Explained everything clearly and followed safety protocols.",
-            created_at: new Date(Date.now() - 172800000).toISOString()
-          },
-          {
-            id: 4,
-            customer_name: "Priya Kumar",
-            rating: 4,
-            feedback: "Professional service for AC maintenance. Would definitely call again for future services.",
-            created_at: new Date(Date.now() - 259200000).toISOString()
+        if (!userId) {
+          console.error('❌ No userId found in localStorage');
+          setLoading(false);
+          return;
+        }
+
+        // 2️⃣ FETCH PROVIDER DATA FROM BACKEND
+        const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           }
-        ]);
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch provider data');
+        }
+
+        const data = await response.json();
+        console.log('✅ PROVIDER DATA LOADED:', data);
+
+        setProvider(data);
+
+        // 3️⃣ FETCH REVIEWS - ✅ ACTIVATED!
+        const reviewsResponse = await fetch(`http://localhost:8080/api/reviews/provider/${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (reviewsResponse.ok) {
+          const reviewsData = await reviewsResponse.json();
+          console.log('✅ REVIEWS LOADED:', reviewsData);
+          setReviews(reviewsData);
+        } else {
+          console.warn('⚠️ No reviews found or error fetching reviews');
+          setReviews([]);
+        }
 
         setLoading(false);
+
       } catch (error) {
-        console.error('Error fetching provider data:', error);
+        console.error('❌ Error fetching provider data:', error);
         setLoading(false);
       }
     };
+
     fetchProviderData();
   }, []);
 
@@ -90,28 +90,28 @@ export const ProviderDashboard = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      verified: {
+      VERIFIED: {
         bg: "badge-verified",
         text: "Verified",
         icon: Shield,
       },
-      pending: {
+      PENDING: {
         bg: "badge-pending",
         text: "Pending Review",
         icon: Calendar,
       },
-      suspended: {
+      SUSPENDED: {
         bg: "badge-suspended",
         text: "Suspended",
         icon: Shield,
       },
-      rejected: {
+      REJECTED: {
         bg: "badge-rejected",
         text: "Rejected",
         icon: Shield,
       },
     };
-    return badges[status] || badges.pending;
+    return badges[status] || badges.PENDING;
   };
 
   if (loading) {
@@ -158,9 +158,9 @@ export const ProviderDashboard = () => {
         <section className="profile-card">
           <div className="profile-header">
             <div>
-              <h2>{provider.full_name}</h2>
+              <h2>{provider.fullName || provider.full_name}</h2>
               <div className="profile-tags">
-                <span className="service-type">{provider.service_type}</span>
+                <span className="service-type">{provider.serviceType || provider.service_type}</span>
                 <span className={`status-badge ${statusBadge.bg}`}>
                   <StatusIcon className="status-icon" />
                   {statusBadge.text}
@@ -168,7 +168,7 @@ export const ProviderDashboard = () => {
               </div>
             </div>
             <button
-              onClick={() => navigate("/provider/edit")}
+              onClick={() => navigate("/provider/editprofile")}
               className="edit-btn"
             >
               <Edit className="icon" />
@@ -190,7 +190,7 @@ export const ProviderDashboard = () => {
               <Phone className="detail-icon" />
               <div>
                 <p className="label">Contact</p>
-                <p>{provider.contact_number}</p>
+                <p>{provider.contactNumber || provider.contact_number}</p>
               </div>
             </div>
 
@@ -198,14 +198,14 @@ export const ProviderDashboard = () => {
               <Award className="detail-icon" />
               <div>
                 <p className="label">PUCSL Badge</p>
-                <p>{provider.pucsl_badge_number}</p>
+                <p>{provider.pucslBadgeNumber || provider.pucsl_badge_number || 'Not Assigned'}</p>
               </div>
             </div>
           </div>
 
           <div className="bio">
             <h3>About</h3>
-            <p>{provider.bio}</p>
+            <p>{provider.bio || 'No bio available'}</p>
           </div>
         </section>
 
@@ -230,15 +230,19 @@ export const ProviderDashboard = () => {
                 <div className="review-header">
                   <div className="review-user">
                     <div className="review-avatar">
-                      {review.customer_name.charAt(0)}
+                      {review.name ? review.name.charAt(0).toUpperCase() : '?'}
                     </div>
                     <div>
-                      <p className="review-name">{review.customer_name}</p>
+                      <p className="review-name">{review.name || 'Anonymous'}</p>
                       <p className="review-date">
-                        {new Date(review.created_at).toLocaleDateString(
-                          "en-US",
-                          { year: "numeric", month: "long", day: "numeric" }
-                        )}
+                        {review.createdAt 
+                          ? new Date(review.createdAt).toLocaleDateString("en-US", { 
+                              year: "numeric", 
+                              month: "long", 
+                              day: "numeric" 
+                            })
+                          : 'Date not available'
+                        }
                       </p>
                     </div>
                   </div>
@@ -246,14 +250,14 @@ export const ProviderDashboard = () => {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`star ${
-                          i < review.rating ? "filled" : "empty"
-                        }`}
+                        className={`star ${i < review.rating ? "filled" : "empty"}`}
+                        fill={i < review.rating ? "#fbbf24" : "none"}
+                        stroke={i < review.rating ? "#fbbf24" : "#d1d5db"}
                       />
                     ))}
                   </div>
                 </div>
-                <p className="review-feedback">{review.feedback}</p>
+                <p className="review-feedback">{review.feedback || 'No feedback provided'}</p>
               </div>
             ))
           )}
@@ -277,7 +281,7 @@ export const ProviderDashboard = () => {
               <div className="stat">
                 <Star className="icon small" />
                 <span>Average Rating</span>
-                <strong>{avgRating}</strong>
+                <strong>{avgRating} ⭐</strong>
               </div>
             )}
           </div>
@@ -286,8 +290,8 @@ export const ProviderDashboard = () => {
             <Eye className="icon" />
             <h3>Profile Visibility</h3>
             <p>
-              Your profile is live and visible to customers searching for{" "}
-              {provider.service_type} services in {provider.district}.
+              Your profile is {provider.status === 'VERIFIED' ? 'live and visible' : 'pending verification and will be visible'} to customers searching for{" "}
+              {provider.serviceType || provider.service_type} services in {provider.district}.
             </p>
             <button
               onClick={() => navigate(`/provider/${provider.id}`)}
@@ -301,4 +305,5 @@ export const ProviderDashboard = () => {
     </div>
   );
 };
+
 export default ProviderDashboard;

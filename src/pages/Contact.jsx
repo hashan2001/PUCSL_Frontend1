@@ -12,6 +12,7 @@ const Contact = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -21,13 +22,30 @@ const Contact = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setError('');
 
-    // Simulate form submission
-    setTimeout(() => {
-      // Store message in localStorage for admin notifications
+    try {
+      console.log('📧 SENDING CONTACT MESSAGE:', formData);
+
+      // Send to backend API
+      const response = await fetch('http://localhost:8080/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      console.log('✅ MESSAGE SENT SUCCESSFULLY');
+
+      // Also save to localStorage for admin dashboard notifications
       const existingMessages = JSON.parse(localStorage.getItem('contactMessages') || '[]');
       const newMessage = {
         id: Date.now(),
@@ -38,8 +56,10 @@ const Contact = () => {
       existingMessages.push(newMessage);
       localStorage.setItem('contactMessages', JSON.stringify(existingMessages));
 
-      setSubmitting(false);
+      // Show success message
       setSubmitted(true);
+      
+      // Clear form
       setFormData({
         name: '',
         email: '',
@@ -50,8 +70,15 @@ const Contact = () => {
 
       // Reset success message after 5 seconds
       setTimeout(() => setSubmitted(false), 5000);
-    }, 1000);
+
+    } catch (err) {
+      console.error('❌ ERROR SENDING MESSAGE:', err);
+      setError('Failed to send message. Please try again or contact us directly.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
   return (
     <div className="contact-page">
       {/* Header Section */}
@@ -73,7 +100,7 @@ const Contact = () => {
                 <h3>Office Address</h3>
                 <p>
                   Public Utilities Commission of Sri Lanka<br />
-                  3rd Floor, BOC Merchant Tower<br />
+                  6th Floor, BOC Merchant Tower<br />
                   No. 28, St. Michael's Road<br />
                   Colombo 03, Sri Lanka
                 </p>
@@ -84,7 +111,7 @@ const Contact = () => {
               <div className="icon"><Phone size={22} /></div>
               <div>
                 <h3>Phone</h3>
-                <p>+94 11 2 636426<br />+94 11 2 636427</p>
+                <p>+94 11 2 575 793<br />+94 77 9590 950</p>
               </div>
             </div>
 
@@ -109,11 +136,19 @@ const Contact = () => {
           {/* Contact Form */}
           <div className="contact-form">
             <h2>Send Us a Message</h2>
+            
             {submitted && (
               <div className="success-message">
                 ✅ Thank you! Your message has been sent successfully. We'll get back to you soon.
               </div>
             )}
+
+            {error && (
+              <div className="error-message">
+                ❌ {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit}>
               <label>Your Name *</label>
               <input
@@ -210,8 +245,5 @@ const Contact = () => {
     </div>
   );
 };
-
-
-
 
 export default Contact;

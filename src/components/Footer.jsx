@@ -36,7 +36,7 @@ export const Footer = () => {
               <div className="footer-socials">
                 <a href="https://www.facebook.com/share/1BxFk8fHoK/" target="_blank" rel="noopener noreferrer" className="social-btn fb"><Facebook /></a>
                 <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="social-btn tw"><Twitter /></a>
-                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="social-btn ln"><Linkedin /></a>
+                <a href="https://www.linkedin.com/company/pucsl/?originalSubdomain=lk" target="_blank" rel="noopener noreferrer" className="social-btn ln"><Linkedin /></a>
               </div>
             </div>
 
@@ -80,7 +80,7 @@ export const Footer = () => {
               <h3 className="footer-title">Contact Info</h3>
               <ul className="footer-contact">
                 <li><MapPin /><span>6th Floor, BOC Merchant Tower<br />No. 28, St. Michael's Road<br />Colombo 03, Sri Lanka</span></li>
-                <li><Phone /><span>+94 11 2 636426</span></li>
+                <li><Phone /><span>+94 11 2 575 793</span></li>
                 <li><Mail /><span>info@pucsl.gov.lk</span></li>
               </ul>
             </div>

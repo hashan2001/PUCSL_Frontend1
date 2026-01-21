@@ -1,34 +1,41 @@
-// src/components/ProtectedRoute.jsx
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 
-export const ProtectedRoute = ({ children, requireAdmin, requireProvider }) => {
-  const { user, profile, loading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  const location = useLocation();
 
-  // Show loading spinner while checking authentication
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  console.log('🔐 ProtectedRoute Check:', {
+    path: location.pathname,
+    role: role,
+    allowedRoles: allowedRoles,
+    hasToken: !!token
+  });
+
+  // 1. Check if user is logged in
+  if (!token) {
+    console.log('❌ No token found - Redirecting to login');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If no user, redirect to login
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  // 2. Check if user has correct role
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    console.log(`❌ Role "${role}" not allowed for ${location.pathname}`);
+    
+    // Redirect to appropriate dashboard based on role
+    if (role === 'ADMIN') {
+      return <Navigate to="/admindashboard" replace />;
+    } else if (role === 'PROVIDER') {
+      return <Navigate to="/providerdashboard" replace />;
+    } else {
+      return <Navigate to="/" replace />;
+    }
   }
 
-  // If admin-only route and user is not admin
-  if (requireAdmin && profile?.role !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
-
-  // If provider-only route and user is not provider
-  if (requireProvider && profile?.role !== 'provider') {
-    return <Navigate to="/" replace />;
-  }
-
-  // Otherwise, show the protected page
-  return <>{children}</>;
+  // 3. User is authorized - render the protected component
+  console.log('✅ Access granted to', location.pathname);
+  return children;
 };
+
+export default ProtectedRoute;

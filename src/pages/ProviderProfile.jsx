@@ -77,6 +77,14 @@ const ProviderProfile = () => {
             return;
         }
 
+        // ✅ GET TOKEN FROM LOCALSTORAGE
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            alert("⚠️ Please login to submit a review.");
+            return;
+        }
+
         // Payload matches the updated ReviewDTO on the backend
         const payload = {
             userId: currentUserId,   // customer ID (reviewer)
@@ -88,19 +96,18 @@ const ProviderProfile = () => {
         };
 
         try {
-            const token = localStorage.getItem("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXNoYW5taXl1cnUyMDAxQGdtYWlsLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc2NDQzNzUzNCwiZXhwIjoxNzY0NTIzOTM0fQ.ri3Yza1wTvLSsbLZRYgiSLEw8oEkIeLpYAqHLloGfCY");
             const res = await fetch("http://localhost:8080/api/reviews", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                "Authorization": `Bearer ${eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJoYXNoYW5taXl1cnUyMDAxQGdtYWlsLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc2NDQzNzUzNCwiZXhwIjoxNzY0NTIzOTM0fQ.ri3Yza1wTvLSsbLZRYgiSLEw8oEkIeLpYAqHLloGfCY}`,
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` // ✅ Send token from localStorage
+                },
                 body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
-                 // The error occurs here due to the 401 response
-                 const errorText = await res.text();
-                 // Throwing the error here will catch it below
-                 throw new Error(`Review submission failed: ${res.status} - ${errorText.substring(0, 100)}...`);
+                const errorText = await res.text();
+                throw new Error(`Review submission failed: ${res.status} - ${errorText}`);
             }
 
             const created = await res.json();
@@ -111,11 +118,10 @@ const ProviderProfile = () => {
             setForm({ name: "", email: "", rating: 5, feedback: "" });
             setShowReviewForm(false);
 
-            alert("Thanks! Your review has been submitted.");
+            alert("✅ Thanks! Your review has been submitted.");
         } catch (err) {
             console.error("Submit review error:", err);
-            // Display a helpful error to the user
-            alert(`Cannot submit review. This is usually due to a server security issue (401 Unauthorized). Please ensure your Spring Security configuration is correct.`);
+            alert(`❌ Cannot submit review: ${err.message}`);
         }
     };
 

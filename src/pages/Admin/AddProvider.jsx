@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Upload } from 'lucide-react';
 import '../../Style/AddProvider.css';
 
-
 const districts = [
   'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
   'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar',
@@ -19,18 +18,19 @@ export const AddProvider = () => {
   const isEdit = !!provider;
 
   const [loading, setLoading] = useState(false);
-  const [uploadMode, setUploadMode] = useState('manual'); // 'manual' or 'csv'
+  const [error, setError] = useState('');
+  const [uploadMode, setUploadMode] = useState('manual');
   const [csvFile, setCsvFile] = useState(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    full_name: '',
-    service_type: 'AC',
-    contact_number: '',
+    fullName: '',
+    serviceType: 'AC',
+    contactNumber: '',
     district: '',
     address: '',
-    course_level: '',
-    pucsl_badge_number: '',
+    courseLevel: '',
+    pucslBadgeNumber: '',
     bio: '',
   });
 
@@ -38,50 +38,83 @@ export const AddProvider = () => {
     if (isEdit && provider) {
       setFormData({
         email: provider.email || '',
-        password: '', // Don't populate password for security
-        full_name: provider.full_name || '',
-        service_type: provider.service_type || 'AC',
-        contact_number: provider.contact_number || '',
+        password: '',
+        fullName: provider.fullName || '',
+        serviceType: provider.serviceType || 'AC',
+        contactNumber: provider.contactNumber || '',
         district: provider.district || '',
         address: provider.address || '',
-        course_level: provider.course_level || '',
-        pucsl_badge_number: provider.pucsl_badge_number || '',
+        courseLevel: provider.courseLevel || '',
+        pucslBadgeNumber: provider.pucslBadgeNumber || '',
         bio: provider.bio || '',
       });
     }
   }, [isEdit, provider]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     if (uploadMode === 'csv' && csvFile) {
       // Handle CSV upload
       const reader = new FileReader();
       reader.onload = (event) => {
         const csvText = event.target.result;
-        // Parse CSV and process (simplified)
         const rows = csvText.split('\n').filter(row => row.trim());
         const providers = rows.slice(1).map(row => {
-          const [full_name, email, password, service_type, contact_number, district, address, pucsl_badge_number, bio] = row.split(',');
-          return { full_name, email, password, service_type, contact_number, district, address, pucsl_badge_number, bio };
+          const [fullName, email, password, serviceType, contactNumber, district, address, pucslBadgeNumber, bio] = row.split(',');
+          return { fullName, email, password, serviceType, contactNumber, district, address, pucslBadgeNumber, bio };
         });
 
-        // Simulate bulk upload
         setTimeout(() => {
           alert(`${providers.length} providers added successfully from CSV!`);
           setLoading(false);
-          navigate('/admin/providers');
+          navigate('/search');
         }, 2000);
       };
       reader.readAsText(csvFile);
     } else {
-      // Simulate form submission (replace with your API call)
-      setTimeout(() => {
-        alert('Provider added successfully!');
+      // Real API call for manual entry
+      try {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          alert('You must be logged in as admin to add providers');
+          navigate('/login');
+          return;
+        }
+
+        const url = isEdit 
+          ? `http://localhost:8080/api/users/providers/${provider.id}`
+          : 'http://localhost:8080/api/users/providers';
+        
+        const method = isEdit ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          alert(isEdit ? 'Provider updated successfully!' : 'Provider added successfully!');
+          // Redirect to search page after successful save
+          navigate('/search');
+        } else {
+          const data = await response.json();
+          setError(data.error || 'Failed to save provider');
+        }
+      } catch (err) {
+        console.error('Error saving provider:', err);
+        setError('Network error. Please check if the backend is running.');
+      } finally {
         setLoading(false);
-        navigate('/admin/providers');
-      }, 1000);
+      }
     }
   };
 
@@ -110,10 +143,24 @@ export const AddProvider = () => {
       </div>
 
       <div className="add-provider-container">
+        {/* Display error message if exists */}
+        {error && (
+          <div className="error-message" style={{
+            backgroundColor: '#fee',
+            border: '1px solid #fcc',
+            padding: '10px',
+            borderRadius: '5px',
+            marginBottom: '20px',
+            color: '#c00'
+          }}>
+            {error}
+          </div>
+        )}
+
         {!isEdit && (
           <>
-            {/* Upload Mode Selection */}
-            <div className="upload-mode-selector">
+            {/* Upload Mode Selection - Commented out as per original */}
+            {/* <div className="upload-mode-selector">
               <button
                 type="button"
                 className={`mode-button ${uploadMode === 'manual' ? 'active' : ''}`}
@@ -129,7 +176,7 @@ export const AddProvider = () => {
                 <Upload className="w-4 h-4" />
                 📄 CSV Upload
               </button>
-            </div>
+            </div> */}
           </>
         )}
 
@@ -150,7 +197,7 @@ export const AddProvider = () => {
                 <p className="file-name">Selected: {csvFile.name}</p>
               )}
               <p className="csv-instructions">
-                CSV format: full_name,email,password,service_type,contact_number,district,address,pucsl_badge_number,bio
+                CSV format: fullName,email,password,serviceType,contactNumber,district,address,pucslBadgeNumber,bio
               </p>
             </div>
           </div>
@@ -164,8 +211,8 @@ export const AddProvider = () => {
                 <input
                   type="text"
                   required
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -180,6 +227,7 @@ export const AddProvider = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter provider mail address"
                 />
               </div>
 
@@ -195,6 +243,7 @@ export const AddProvider = () => {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter password (min 6 characters)"
                   />
                 </div>
               )}
@@ -205,10 +254,11 @@ export const AddProvider = () => {
                 </label>
                 <select
                   required
-                  value={formData.service_type}
-                  onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
+                  value={formData.serviceType}
+                  onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
+                  <option value="">Choose your Service</option>
                   <option value="AC">Air Conditioning</option>
                   <option value="RAC">Refrigerator & Air Conditioning</option>
                   <option value="Electrician">Electrician</option>
@@ -222,8 +272,8 @@ export const AddProvider = () => {
                 <input
                   type="tel"
                   required
-                  value={formData.contact_number}
-                  onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
+                  value={formData.contactNumber}
+                  onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="+94 XX XXX XXXX"
                 />
@@ -270,8 +320,8 @@ export const AddProvider = () => {
               <input
                 type="text"
                 required
-                value={formData.course_level}
-                onChange={(e) => setFormData({ ...formData, course_level: e.target.value })}
+                value={formData.courseLevel}
+                onChange={(e) => setFormData({ ...formData, courseLevel: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter Level Of Course"
               />
@@ -284,8 +334,8 @@ export const AddProvider = () => {
               <input
                 type="text"
                 required
-                value={formData.pucsl_badge_number}
-                onChange={(e) => setFormData({ ...formData, pucsl_badge_number: e.target.value })}
+                value={formData.pucslBadgeNumber}
+                onChange={(e) => setFormData({ ...formData, pucslBadgeNumber: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter PUCSL badge number"
               />
@@ -315,7 +365,7 @@ export const AddProvider = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/admin/providers')}
+                onClick={() => navigate('/providermanagement')}
                 className="cancel-button"
               >
                 Cancel
@@ -336,7 +386,7 @@ export const AddProvider = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/admin/providers')}
+              onClick={() => navigate('/providermanagement')}
               className="cancel-button"
             >
               Cancel
@@ -347,377 +397,5 @@ export const AddProvider = () => {
     </div>
   );
 };
+
 export default AddProvider;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import { useState, useEffect } from 'react';
-// import { useNavigate, useLocation, useParams } from 'react-router-dom';
-// import { ArrowLeft, Upload } from 'lucide-react';
-// import '../../Style/AddProvider.css';
-
-// const districts = [
-//   'Colombo','Gampaha','Kalutara','Kandy','Matale','Nuwara Eliya',
-//   'Galle','Matara','Hambantota','Jaffna','Kilinochchi','Mannar',
-//   'Vavuniya','Mullaitivu','Batticaloa','Ampara','Trincomalee',
-//   'Kurunegala','Puttalam','Anuradhapura','Polonnaruwa','Badulla',
-//   'Monaragala','Ratnapura','Kegalle'
-// ];
-
-// export const AddProvider = () => {
-//   const navigate = useNavigate();
-//   const location = useLocation();
-//   const params = useParams();
-
-//   const provider = location.state?.provider;
-//   const isEdit = !!provider;
-
-//   const [loading, setLoading] = useState(false);
-//   const [formData, setFormData] = useState({
-//     full_name: '',
-//     email: '',
-//     password: '',
-//     service_type: 'Electrician',
-//     contact_number: '',
-//     district: '',
-//     address: '',
-//     course_level: '',
-//     pucsl_badge_number: '',
-//     bio: ''
-//   });
-
-//   // LOAD PROVIDER WHEN EDIT
-//   useEffect(() => {
-//     if (isEdit && provider) {
-//       fetch(`http://localhost:8080/api/users/${provider.id}`)
-//         .then(res => res.json())
-//         .then(data => {
-//           setFormData({
-//             full_name: data.fullName || '',
-//             email: data.email || '',
-//             password: '', // never show backend password
-//             service_type: data.serviceType || '',
-//             contact_number: data.contactNumber || '',
-//             district: data.district || '',
-//             address: data.address || '',
-//             course_level: data.courseLevel || '',
-//             pucsl_badge_number: data.pucslBadgeNumber || '',
-//             bio: data.bio || ''
-//           });
-//         });
-//     }
-//   }, [isEdit, provider]);
-
-//   // HANDLE SUBMIT (ADD or UPDATE)
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setLoading(true);
-
-//     // Convert frontend names to backend names
-//     const payload = {
-//       fullName: formData.full_name,
-//       email: formData.email,
-//       serviceType: formData.service_type,
-//       contactNumber: formData.contact_number,
-//       district: formData.district,
-//       address: formData.address,
-//       courseLevel: formData.course_level,
-//       pucslBadgeNumber: formData.pucsl_badge_number,
-//       bio: formData.bio
-//     };
-
-//     // Only send password if adding OR user typed new password
-//     if (!isEdit || (isEdit && formData.password !== "")) {
-//       payload.password = formData.password;
-//     }
-
-//     try {
-//       const response = await fetch(
-//         isEdit
-//           ? `http://localhost:8080/api/users/${provider.id}`
-//           : "http://localhost:8080/api/users",
-//         {
-//           method: isEdit ? "PUT" : "POST",
-//           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify(payload)
-//         }
-//       );
-
-//       if (!response.ok) {
-//         throw new Error("Error saving provider.");
-//       }
-
-//       alert(isEdit ? "Provider updated successfully!" : "Provider created!");
-//       navigate("/providermanagement");
-
-//     } catch (error) {
-//       alert(error.message);
-//     }
-
-//     setLoading(false);
-//   };
-
-//   return (
-//     <div className="add-provider-page">
-//       <div className="add-provider-header">
-//         <div>
-//           <button
-//             onClick={() => navigate('/providermanagement')}
-//             className="back-button"
-//           >
-//             <ArrowLeft className="w-4 h-4" />
-//             <span>Back to Provider Management</span>
-//           </button>
-//           <h1>{isEdit ? "Edit Provider" : "Add New Provider"}</h1>
-//         </div>
-//       </div>
-
-//       <div className="add-provider-container">
-//         <form onSubmit={handleSubmit}>
-
-//           <div className="form-grid">
-//             {/* FULL NAME */}
-//             <div>
-//               <label>Full Name *</label>
-//               <input
-//                 type="text"
-//                 required
-//                 value={formData.full_name}
-//                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-//               />
-//             </div>
-
-//             {/* EMAIL */}
-//             <div>
-//               <label>Email *</label>
-//               <input
-//                 type="email"
-//                 required
-//                 value={formData.email}
-//                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-//               />
-//             </div>
-
-//             {/* PASSWORD – only required for Add */}
-//             {!isEdit && (
-//               <div>
-//                 <label>Password *</label>
-//                 <input
-//                   type="password"
-//                   required
-//                   value={formData.password}
-//                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-//                 />
-//               </div>
-//             )}
-
-//             {/* PASSWORD – optional for update */}
-//             {isEdit && (
-//               <div>
-//                 <label>New Password (optional)</label>
-//                 <input
-//                   type="password"
-//                   placeholder="Leave blank to keep existing"
-//                   value={formData.password}
-//                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-//                 />
-//               </div>
-//             )}
-
-//             {/* SERVICE TYPE */}
-//             <div>
-//               <label>Service Type *</label>
-//               <select
-//                 value={formData.service_type}
-//                 onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
-//               >
-//                 <option value="Electrician">Electrician</option>
-//                 <option value="AC">AC Technician</option>
-//                 <option value="RAC">RAC Technician</option>
-//               </select>
-//             </div>
-
-//             {/* CONTACT NUMBER */}
-//             <div>
-//               <label>Contact Number *</label>
-//               <input
-//                 type="text"
-//                 required
-//                 value={formData.contact_number}
-//                 onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
-//               />
-//             </div>
-
-//             {/* DISTRICT */}
-//             <div>
-//               <label>District *</label>
-//               <select
-//                 value={formData.district}
-//                 onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-//                 required
-//               >
-//                 <option value="">Select District</option>
-//                 {districts.map((d) => (
-//                   <option key={d} value={d}>{d}</option>
-//                 ))}
-//               </select>
-//             </div>
-//           </div>
-
-//           {/* ADDRESS */}
-//           <div className="form-full-width">
-//             <label>Address *</label>
-//             <input
-//               type="text"
-//               required
-//               value={formData.address}
-//               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-//             />
-//           </div>
-
-//           {/* COURSE LEVEL */}
-//           <div className="form-full-width">
-//             <label>Course Level *</label>
-//             <input
-//               type="text"
-//               required
-//               value={formData.course_level}
-//               onChange={(e) => setFormData({ ...formData, course_level: e.target.value })}
-//             />
-//           </div>
-
-//           {/* PUCSL BADGE */}
-//           <div className="form-full-width">
-//             <label>PUCSL Badge Number *</label>
-//             <input
-//               type="text"
-//               required
-//               value={formData.pucsl_badge_number}
-//               onChange={(e) => setFormData({ ...formData, pucsl_badge_number: e.target.value })}
-//             />
-//           </div>
-
-//           {/* BIO */}
-//           <div className="form-full-width">
-//             <label>Bio *</label>
-//             <textarea
-//               rows={4}
-//               required
-//               value={formData.bio}
-//               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-//             />
-//           </div>
-
-//           <div className="form-buttons">
-//             <button type="submit" disabled={loading} className="submit-button">
-//               {loading ? (isEdit ? "Updating..." : "Saving...") : (isEdit ? "Update Provider" : "Add Provider")}
-//             </button>
-
-//             <button
-//               type="button"
-//               onClick={() => navigate('/providermanagement')}
-//               className="cancel-button"
-//             >
-//               Cancel
-//             </button>
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default AddProvider;

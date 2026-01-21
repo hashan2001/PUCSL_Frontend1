@@ -17,85 +17,122 @@ export const EditProfile = () => {
   const [submitting, setSubmitting] = useState(false);
   const [provider, setProvider] = useState(null);
   const [formData, setFormData] = useState({
-    contact_number: '',
+    contactNumber: '',
     district: '',
-    profile_photo: null,
-    status: '',
+    address: '',
+    bio: '',
   });
   const [photoPreview, setPhotoPreview] = useState(null);
 
-  // Fetch provider data from localStorage
+  // Fetch provider data from backend
   useEffect(() => {
-    const fetchProvider = () => {
+    const fetchProvider = async () => {
       try {
-        const storedProviders = JSON.parse(localStorage.getItem('providers') || '[]');
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const userId = localStorage.getItem('userId');
+        const token = localStorage.getItem('token');
 
-        if (currentUser && currentUser.role === 'provider') {
-          const providerData = storedProviders.find(p => p.email === currentUser.email);
-          if (providerData) {
-            setProvider(providerData);
-            setFormData({
-              contact_number: providerData.contact_number || '',
-              district: providerData.district || '',
-              profile_photo: null,
-            });
-            if (providerData.profile_photo) {
-              setPhotoPreview(providerData.profile_photo);
-            }
-          }
+        console.log('🔍 FETCHING PROVIDER DATA FOR EDIT, USER ID:', userId);
+
+        if (!userId) {
+          console.error('❌ No userId found');
+          setLoading(false);
+          return;
         }
+
+        const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch provider data');
+        }
+
+        const data = await response.json();
+        console.log('✅ PROVIDER DATA LOADED FOR EDIT:', data);
+
+        setProvider(data);
+        setFormData({
+          contactNumber: data.contactNumber || data.contact_number || '',
+          district: data.district || '',
+          address: data.address || '',
+          bio: data.bio || '',
+        });
+
+        if (data.profilePhoto || data.profile_photo) {
+          setPhotoPreview(data.profilePhoto || data.profile_photo);
+        }
+
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching provider:', error);
+        console.error('❌ Error fetching provider:', error);
+        alert('Failed to load profile data. Please try again.');
         setLoading(false);
       }
     };
+
     fetchProvider();
   }, []);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData({ ...formData, profile_photo: file });
       const reader = new FileReader();
       reader.onload = (e) => setPhotoPreview(e.target.result);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
-    // Update provider data in localStorage
     try {
-      const storedProviders = JSON.parse(localStorage.getItem('providers') || '[]');
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('token');
 
-      const updatedProviders = storedProviders.map(p => {
-        if (p.email === currentUser.email) {
-          return {
-            ...p,
-            contact_number: formData.contact_number,
-            district: formData.district,
-            profile_photo: photoPreview || p.profile_photo,
-            status: formData.status,
-          };
-        }
-        return p;
+      console.log('💾 UPDATING PROVIDER DATA:', formData);
+
+      // Prepare update data
+      const updateData = {
+        contactNumber: formData.contactNumber,
+        district: formData.district,
+        address: formData.address,
+        bio: formData.bio,
+      };
+
+      // If photo was changed, include it (Base64 or FormData depending on your backend)
+      if (photoPreview && photoPreview !== provider.profilePhoto) {
+        updateData.profilePhoto = photoPreview;
+      }
+
+      const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+        method: 'PUT', // or 'PATCH' if your backend uses PATCH
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updateData)
       });
 
-      localStorage.setItem('providers', JSON.stringify(updatedProviders));
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to update profile');
+      }
 
-      setTimeout(() => {
-        alert('✅ Profile updated successfully!');
-        setSubmitting(false);
-        navigate('/provider');
-      }, 1000);
+      const updatedData = await response.json();
+      console.log('✅ PROFILE UPDATED SUCCESSFULLY:', updatedData);
+
+      alert('✅ Profile updated successfully!');
+      navigate('/providerdashboard');
+
     } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('❌ Error updating profile. Please try again.');
+      console.error('❌ Error updating profile:', error);
+      alert(`❌ Error updating profile: ${error.message}`);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -104,6 +141,7 @@ export const EditProfile = () => {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
+        <p>Loading profile...</p>
       </div>
     );
   }
@@ -114,7 +152,7 @@ export const EditProfile = () => {
         <div className="error-box">
           <h2>Profile Not Found</h2>
           <p>Unable to load your profile information.</p>
-          <button onClick={() => navigate('/provider')}>← Back to Dashboard</button>
+          <button onClick={() => navigate('/providerdashboard')}>← Back to Dashboard</button>
         </div>
       </div>
     );
@@ -124,7 +162,7 @@ export const EditProfile = () => {
     <div className="edit-profile-page">
       <div className="header-section">
         <div className="header-container">
-          <button onClick={() => navigate('/provider')} className="back-button">
+          <button onClick={() => navigate('/providerdashboard')} className="back-button">
             <ArrowLeft className="icon" />
             <span>Back to Dashboard</span>
           </button>
@@ -136,8 +174,8 @@ export const EditProfile = () => {
         <div className="form-box">
           <div className="note-box">
             <p>
-              <strong>Note:</strong> You can update your contact number, district, and status.
-              For other changes, please contact PUCSL admin.
+              <strong>Note:</strong> Update your contact information and service details.
+              Your PUCSL badge number and verification status can only be changed by admin.
             </p>
           </div>
 
@@ -173,7 +211,6 @@ export const EditProfile = () => {
                       type="button"
                       onClick={() => {
                         setPhotoPreview(null);
-                        setFormData({ ...formData, profile_photo: null });
                       }}
                       className="remove-photo-btn"
                     >
@@ -184,14 +221,49 @@ export const EditProfile = () => {
               </div>
             </div>
 
+            {/* Read-only fields */}
+            <div className="form-group">
+              <label>Full Name</label>
+              <input
+                type="text"
+                value={provider.fullName || provider.full_name || ''}
+                disabled
+                className="disabled-input"
+              />
+              <small>Contact admin to change this field</small>
+            </div>
+
+            <div className="form-group">
+              <label>Email</label>
+              <input
+                type="email"
+                value={provider.email || ''}
+                disabled
+                className="disabled-input"
+              />
+              <small>Contact admin to change this field</small>
+            </div>
+
+            <div className="form-group">
+              <label>Service Type</label>
+              <input
+                type="text"
+                value={provider.serviceType || provider.service_type || ''}
+                disabled
+                className="disabled-input"
+              />
+              <small>Contact admin to change this field</small>
+            </div>
+
+            {/* Editable fields */}
             <div className="form-group">
               <label>Contact Number *</label>
               <input
                 type="tel"
                 required
-                value={formData.contact_number}
+                value={formData.contactNumber}
                 onChange={(e) =>
-                  setFormData({ ...formData, contact_number: e.target.value })
+                  setFormData({ ...formData, contactNumber: e.target.value })
                 }
                 placeholder="+94 XX XXX XXXX"
               />
@@ -216,17 +288,39 @@ export const EditProfile = () => {
             </div>
 
             <div className="form-group">
-              <label>Status</label>
-              <select
-                value={formData.status}
+              <label>Address *</label>
+              <input
+                type="text"
+                required
+                value={formData.address}
                 onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value })
+                  setFormData({ ...formData, address: e.target.value })
                 }
-              >
-                <option value="pending">Pending</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+                placeholder="Your service address"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Bio / Description</label>
+              <textarea
+                rows="4"
+                value={formData.bio}
+                onChange={(e) =>
+                  setFormData({ ...formData, bio: e.target.value })
+                }
+                placeholder="Tell customers about your services and experience..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Status</label>
+              <input
+                type="text"
+                value={provider.status || 'PENDING'}
+                disabled
+                className="disabled-input"
+              />
+              <small>Only admin can change verification status</small>
             </div>
 
             <div className="button-group">
@@ -235,7 +329,7 @@ export const EditProfile = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/provider')}
+                onClick={() => navigate('/providerdashboard')}
                 className="cancel-btn"
               >
                 Cancel
@@ -247,4 +341,5 @@ export const EditProfile = () => {
     </div>
   );
 };
+
 export default EditProfile;

@@ -43,42 +43,67 @@ const Login = () => {
 
       // 2. Handle Errors (401/403)
       if (!response.ok) {
-        throw new Error('Invalid Email or Password');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Invalid Email or Password');
       }
 
       // 3. Parse Response
       const data = await response.json();
 
-      // 4. Save to Local Storage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.role);
-      localStorage.setItem('userId', data.id); // Critical for Provider Profile
+      console.log('✅ Login successful:', data);
 
-      // 5. Redirect based on Role
+      // 4. Save to Local Storage - ALL REQUIRED KEYS
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.role); // ADMIN or PROVIDER (for ProtectedRoute)
+      localStorage.setItem('userType', data.role.toLowerCase()); // admin or provider (for Navigation)
+      localStorage.setItem('userId', data.id);
+      localStorage.setItem('userName', data.email);
+      localStorage.setItem('userEmail', data.email);
+
+      console.log('💾 Saved to localStorage:', {
+        token: '✓',
+        role: data.role,
+        userType: data.role.toLowerCase(),
+        userId: data.id,
+        userName: data.email
+      });
+
+      // 5. Force Navigation to re-render by dispatching custom event
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'userType',
+        newValue: data.role.toLowerCase(),
+        url: window.location.href
+      }));
+
+      // 6. Small delay to ensure Navigation updates before redirect
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // 7. Redirect based on Role
       if (data.role === 'ADMIN') {
-        navigate('/admin/providers'); // Go to Admin Dashboard
+        console.log('🔄 Redirecting to Admin Dashboard...');
+        navigate('/admindashboard', { replace: true });
       } else if (data.role === 'PROVIDER') {
-        navigate(`/provider/profile/${data.id}`); // Go to Provider Profile
+        console.log('🔄 Redirecting to Provider Dashboard...');
+        navigate('/providerdashboard', { replace: true });
       } else {
-        navigate('/'); // Fallback
+        navigate('/', { replace: true });
       }
 
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Login failed. Please check your connection.');
+      console.error('❌ Login error:', err);
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
 
-  // --- FORGOT PASSWORD LOGIC (Simulated) ---
+  // --- FORGOT PASSWORD LOGIC ---
   const handleForgotPassword = (e) => {
     e.preventDefault();
     if (!forgotEmail) {
       setForgotMessage('Please enter your email address.');
       return;
     }
-    // Simulate API call for forgot password
     setForgotMessage('Password reset instructions have been sent to your email.');
     setTimeout(() => {
       setShowForgotPassword(false);
@@ -103,7 +128,7 @@ const Login = () => {
             <label>Email Address</label>
             <input
               type="email"
-              placeholder="your.email@example.com"
+              placeholder="youremail@gmail.com"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
